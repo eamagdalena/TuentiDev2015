@@ -1,0 +1,57 @@
+package tuenti
+
+import Utils._
+import SolutionIterator._
+
+import scala.concurrent.Future
+
+import scala.concurrent._
+import scala.concurrent.duration._
+import ExecutionContext.Implicits.global
+
+object Problem6 extends App {
+
+  val problemsToSolve = for (line <- fromFile(args.head).drop(1)) yield ProblemToSolve(line)
+
+  println("Loading big sheet...")
+  val sheet: List[List[Int]] = fromFile("sheet.data").tail.map { x => x.split(" ").toList.map(i => i.toInt) }
+
+  def solve(p: ProblemToSolve): Int = {
+
+    val slicedSheet = sheet.take(p.y1 + 1).drop(p.y0).map { x => x.take(p.x1 + 1).drop(p.x0) }
+
+    println("Performing magic straightforward calculus")
+
+    val outputFutures = (for {
+      y <- 0 until p.height - 2 * p.k
+      x <- 0 until p.width - 2 * p.k
+
+    } yield Future {
+      val block = slicedSheet.iterator.drop(y)
+      val offset = x + p.k + 1
+      val sum = (for (i <- 0 until p.k) yield block.next().iterator.drop(x).take(p.k).sum).sum
+      block.drop(1)
+      sum + (for (i <- 0 until p.k) yield block.next().iterator.drop(offset).take(p.k).sum).sum
+    })
+
+    val output = Await.result(Future.sequence(outputFutures), Duration(6000, "seconds"))
+
+    val solution = output.max
+
+    println("Solution for " + p + " is " + solution)
+
+    solution
+  }
+
+  val res = for {
+    p <- problemsToSolve
+  } yield solve(p)
+
+  println(res)
+
+  val output = (for (i <- 1 to res.length) yield "Case " + i + ": " + res(i - 1)).toList
+
+  toFile(pretty(output), s"${args.head}.solved")
+
+}
+

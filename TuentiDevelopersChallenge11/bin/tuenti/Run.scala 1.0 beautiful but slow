@@ -1,0 +1,122 @@
+package tuenti
+
+/* Fantastic immutable state part 2 */
+
+trait Action
+
+/** Bussiness Actions */
+case class Open(door: Door) extends Action
+
+case class DecideToGoAfter(door: Door) extends Action /* Signals the target and kills the creep */
+
+case class Masacre(doors: List[Door]) extends Action
+
+case class Run(
+  stamina: Int,
+  keys: Int,
+  location: Room,
+  doorToOpen: Door,
+  doorToOpenIsBlocked: Boolean,
+  minionsLeftInTheRoom: List[Door],
+  deadSet: List[(Int, Int)],
+  scene: Scenario) {
+
+  def decideToAimForDoor(door: Door) = Run(
+    if (stamina < scene.startingStamina) stamina + 1 else scene.startingStamina,
+    1,
+    location,
+    door,
+    false,
+    minionsLeftInTheRoom.filter(_ != door),
+    (location.number, door.number) :: deadSet,
+    scene)
+
+  def masacre(victims: List[Door]) =
+    Run(
+      if (stamina + victims.size < scene.startingStamina) stamina + victims.size else scene.startingStamina,
+      keys + victims.size,
+      location,
+      doorToOpen,
+      false,
+      minionsLeftInTheRoom.filter(!victims.contains(_)),
+      victims.map { victim => (location.number, victim.number) } ++ deadSet,
+      scene)
+
+  def openDoor(door: Door) = {
+    val newLocation = scene.roomsMap.getOrElse(door.leadsTo, null)
+
+    if (newLocation != null) {
+      Run(stamina - door.stamina, 0, newLocation, null, true, newLocation.doors.toList, deadSet, scene)
+    } else {
+      Run(stamina - door.stamina, 0, null, null, true, null, deadSet, scene)
+    }
+
+  }
+
+  def doAction(action: Action): Run = {
+
+    action match {
+      case Open(door: Door)            => openDoor(door)
+      case DecideToGoAfter(door: Door) => decideToAimForDoor(door)
+      case Masacre(doors: List[Door])  => masacre(doors)
+    }
+  }
+
+  def exited = (location == null)
+
+  def possibleActions: List[Action] = { /* The magical function which makes this work */
+
+    if (doorToOpen == null) { /* We need to decide among all the potential doors to open */
+
+      val numberMonsters = location.doors.size
+
+      location.doors.filter { door =>
+        door.stamina <= scene.startingStamina &&
+          door.stamina <= stamina + numberMonsters &&
+          door.keys <= numberMonsters
+
+      }.map { door => DecideToGoAfter(door) }.toList
+
+    } else if (stamina >= doorToOpen.stamina && keys >= doorToOpen.keys) {
+      List(Open(doorToOpen))
+    } else { /* Time for masacre */
+
+      val masacreSize = Math.max(doorToOpen.stamina - stamina, doorToOpen.keys - keys)
+
+      Run.combinator(minionsLeftInTheRoom, masacreSize).map { l => Masacre(l) }
+    }
+
+  }
+
+}
+
+object Run {
+
+  def apply(scenario: Scenario): Run = {
+    val start = scenario.roomsMap("start")
+    Run(scenario.startingStamina, 0, start, null, true, start.doors.toList, List.empty, scenario)
+  }
+
+  def combinator(minions: List[Door], masacreSize: Int): List[List[Door]] = {
+
+    def combinatorRec(accum: List[Door], remainder: List[Door]): List[List[Door]] = {
+
+      if (accum.size == masacreSize) {
+        List(accum)
+      } else if (accum.size + remainder.size < masacreSize) {
+        List.empty
+      } else {
+        (for {
+          i <- (0 until remainder.size).toList
+          sublist = remainder.drop(i)
+        } yield {
+          combinatorRec(sublist.head :: accum, sublist.tail)
+        }).flatten
+      }
+    }
+
+    combinatorRec(List.empty, minions)
+
+  }
+
+}

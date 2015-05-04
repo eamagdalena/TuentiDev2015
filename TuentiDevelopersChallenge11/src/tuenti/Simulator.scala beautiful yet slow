@@ -1,0 +1,59 @@
+package tuenti
+
+import scala.collection.mutable.ListBuffer
+import scala.collection.immutable.VectorBuilder
+
+import scala.concurrent.Future
+
+import scala.concurrent._
+import scala.concurrent.duration._
+import ExecutionContext.Implicits.global
+
+class Simulator(initialRun: Run) {
+
+  val result = new VectorBuilder[BigInt] // 8 seconds on case 50
+
+  //val pendingRuns = new scala.collection.mutable.Stack[Run]
+
+  //pendingRuns.push(initialRun)
+
+  def execute() { /* We optimize like this to avoid running out of memory on large recursions */
+
+    var pendingRuns = Vector[Run](initialRun)
+
+    while (!pendingRuns.isEmpty) {
+      pendingRuns = (
+        for {
+          run <- pendingRuns
+          newRun <- internalExecute(run)
+        } yield newRun)
+
+      println(pendingRuns.size)
+    }
+
+  }
+
+  private def internalExecute(run: Run): Vector[Run] = {
+
+    if (run.exited) {
+      result += run.deadSet.reduce(_ * _)
+      Vector.empty
+    } else {
+      val actions = run.possibleActions
+
+      if (!actions.isEmpty) {
+        val runs = actions.map { action => run.doAction(action) }
+
+        if (runs.size == 1) {
+          internalExecute(runs.head)
+        } else {
+          runs
+        }
+
+      } else {
+        Vector.empty
+      }
+    }
+  }
+
+}

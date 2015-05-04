@@ -1,0 +1,76 @@
+    val correlationOnTop = findScoreForSize(pattern.size)
+    var resolution = pattern.size / 10
+
+    var pointer1 = pattern.size - 2 * resolution
+    var correlation1 = findScoreForSize(pointer1)
+
+    var pointer2 = pattern.size - resolution * 3
+    var correlation2 = findScoreForSize(pointer2)
+
+    while (!finished) {
+
+      println("TOP:" + correlationOnTop)
+      println("1 @" + pointer1 + "=" + correlation1)
+      println("2 @" + pointer2 + "=" + correlation2)
+
+      if (correlation2 > correlation1) {
+        pointer1 = pointer1 - resolution
+        pointer2 = pointer2 - resolution
+      } else {
+
+        if (correlation1 < correlationOnTop) {
+          pointer1 = pointer1 + resolution
+        } else if (correlation2 < correlationOnTop) {
+          pointer2 = pointer2 + resolution
+        } else { /* Converging */
+          pointer2 = pointer2 + resolution
+          pointer1 = pointer1 + resolution
+
+          if (pointer1 - pointer2 <= 5) {
+            score = (pointer1 to pointer2).map(findScoreForSize(_)).max
+            finished = true
+          }
+
+        }
+
+      }
+
+      resolution = resolution / 2
+      if (resolution < 1) resolution = 1
+
+      correlation1 = findScoreForSize(pointer1)
+      correlation2 = findScoreForSize(pointer2)
+    }
+
+    //    var upperLimit = pattern.size
+    //    var lowerLimit = pattern.size / 2
+    //    var mid = upperLimit / 2 + lowerLimit / 2
+    //
+    //    var upperCorrelation : Double = 0
+    //    var midCorrelation : Double = 0
+    //    var lowerCorrelation : Double = 0
+
+    //      upperCorrelation = findScoreForSize(upperLimit)
+    //      lowerCorrelation = findScoreForSize(lowerLimit)
+    //      midCorrelation = findScoreForSize(mid)
+    //
+    //      if(midCorrelation > upperCorrelation){
+    //        upperLimit = (upperLimit + mid) / 2
+    //      }else{
+    //        midLimit =
+    //        upperLimit = pattern.size - 1
+    //
+    //      }
+
+    //* subvectorLength
+    //      println("%.4f".format(maxCorrelationForThisSize) + " for size " + subvectorLength + ":" + maxCorrelationForThisSize * subvectorLength)
+
+    //      if (maxCorrelationForThisSize > 0) {
+    //        if (maxCorrelationForThisSize > highestXCorr) {
+    //          highestXCorr = maxCorrelationForThisSize
+    //          score = maxCorrelationForThisSize * subvectorLength
+    //        } else {
+    //          finished = true
+    //        }
+    //      }
+    //}

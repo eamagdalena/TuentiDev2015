@@ -1,0 +1,7 @@
+1. I read the source code and saw that the database credentials are stored in the cookie
+2. I did a reverse md5 lookup of the signature of the cookie and found that the root password is x (http://md5.gromweb.com/)
+3. Created my own mysql database in db4free.net. Put a table users with an entry gotilio / gotilio
+4. Created the config string for the cookie with the connection parameters to my database
+5. Calculated the hash of the lower case of my cookie and edited the cookies on the browser with "EditThisCookie"
+6. Submited my user and voila! 
+7. I hate the guy who designed this problem :P (But I hate the one of the convolution even more, I suspect its the same person)

@@ -1,0 +1,63 @@
+package tuenti
+
+import Utils._
+import SolutionIterator._
+
+import scala.concurrent.Future
+
+import scala.concurrent._
+import scala.concurrent.duration._
+import ExecutionContext.Implicits.global
+
+object Problem6 extends App {
+
+  val problemsToSolve = for (line <- fromFile(args.head).drop(1)) yield ProblemToSolve(line)
+
+  println("Loading big sheet...")
+
+  val sheet: List[List[Int]] = fromFile("sheet.data").tail.map { x => x.split(" ").toList.map(i => i.toInt) }
+
+  def initializeOutput(p: ProblemToSolve) = {
+    Range(1, p.height - 2 * p.k + 1).map { y =>
+      Range(1, p.width - 2 * p.k + 1).map { x => new SumContainer(0, x, y) }
+    }
+  }
+
+  def solve(p: ProblemToSolve): Int = {
+
+    val slicedSheet = sheet.take(p.y1 + 1).drop(p.y0).map { x => x.take(p.x1 + 1).drop(p.x0) }
+
+    println("Initializing Output...")
+
+    val output = initializeOutput(p)
+
+    println("Creating Magical Solution Iterators...")
+
+    val solutionIterators = initialize(p.k, p.width, output)
+
+    println("Running... Problem size is " + (2 * p.k * p.k * p.width * p.height) + " / 2*K^2 = " + (2 * p.k * p.k) + " / W*H = " + (p.width * p.height))
+
+    for {
+      row <- slicedSheet
+      cellValue <- row
+    } solutionIterators.foreach { x => x.sum(cellValue) }
+
+    val solution = output.flatten.maxBy(_.sum).sum
+
+    println("Solution for " + p + " is " + solution)
+
+    solution
+  }
+
+  val res = for {
+    p <- problemsToSolve
+  } yield solve(p)
+
+  println(res)
+
+  val output = (for (i <- 1 to res.length) yield "Case " + i + ": " + res(i - 1)).toList
+
+  toFile(pretty(output), s"${args.head}.solved")
+
+}
+

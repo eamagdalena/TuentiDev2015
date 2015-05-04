@@ -1,0 +1,72 @@
+package tuenti
+
+/**
+ * @author Eduardo
+ */
+object XCorrelation {
+
+  def min(x: Int, y: Int) = if (x < y) x else y
+  def max(x: Double, y: Double) = if (x > y) x else y
+  val THRESCORR = 1e-30
+
+  def crosscorr(x: List[Double], y: List[Double]): List[Double] = {
+
+    val xMean = x.filter(xi => xi >= 0 && xi <= 15).sum / x.size
+    val yMean = y.filter(yi => yi >= 0 && yi <= 15).sum / y.size
+
+    val xSumCuadraticDiff = x.map { xi => Math.pow(xi - xMean, 2) }.sum
+    val ySumCuadraticDiff = y.map { yi => Math.pow(yi - yMean, 2) }.sum
+
+    val denom = Math.sqrt(xSumCuadraticDiff * ySumCuadraticDiff)
+
+    if (denom < THRESCORR) return Nil
+
+    val res = (for {
+      delay <- 0 to (y.size - x.size)
+      yIter = y.iterator drop (delay)
+      xIter = x.iterator
+    } yield {
+      xIter.map { xi => (xi - xMean) * (yIter.next - yMean) }.sum / denom
+    }).toList
+
+    //println(res)
+
+    res
+
+  }
+
+  def findScore(wave: List[Double], pattern: List[Double]) = {
+
+    val minSubvectorLength = 2
+
+    (for {
+      subvectorStart <- 0 to wave.size - minSubvectorLength
+      subvectorLength <- minSubvectorLength to min(wave.size - subvectorStart, pattern.size)
+      xcorrelation = crosscorr(wave.drop(subvectorStart).take(subvectorLength), pattern)
+      if (!xcorrelation.isEmpty)
+    } yield {
+      //println(xcorrelation.max * subvectorLength)
+      xcorrelation.max * subvectorLength
+    }).max
+
+  }
+
+  //
+  //double findScore(const double* wave, int waveSize, const double* pattern, int patternSize){
+  //  double score = 0.0;
+  //  int minSubvectorLength = 2;
+  //
+  //  for (int subvectorStart = 0; subvectorStart <= waveSize - minSubvectorLength; subvectorStart++) {
+  //    for (int subvectorLength = minSubvectorLength; subvectorLength <= MIN(waveSize - subvectorStart, patternSize); subvectorLength++) {
+  //      std::vector<double> xcorrelation = crosscorr(&(wave[subvectorStart]), subvectorLength, pattern, patternSize);
+  //
+  //      for (int xcorrelationIndex = 0; xcorrelationIndex < xcorrelation.size(); xcorrelationIndex++) {
+  //        score = MAX(score, xcorrelation[xcorrelationIndex] * subvectorLength);
+  //      }
+  //        }
+  //  }
+  //
+  //  return score;
+  //}
+
+}
